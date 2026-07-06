@@ -6,6 +6,7 @@ export const TextInput = ({
     label
 }: {
     placeholder: string;
+    // eslint-disable-next-line no-unused-vars
     onChange: (value: string) => void;
     label: string;
 }) => {

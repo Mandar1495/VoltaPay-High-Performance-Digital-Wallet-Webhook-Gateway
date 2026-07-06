@@ -1,5 +1,6 @@
 "use client"
 export const Select = ({ options, onSelect }: {
+    // eslint-disable-next-line no-unused-vars
     onSelect: (value: string) => void;
     options: {
         key: string;

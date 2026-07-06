@@ -1,4 +1,3 @@
-import { Button } from "./button";
 
 interface AppbarProps {
     user?: {
