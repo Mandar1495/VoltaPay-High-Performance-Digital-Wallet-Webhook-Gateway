@@ -1,0 +1,66 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build and Lint Workspace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Workspace Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate --schema=packages/db/prisma/schema.prisma
+
+      - name: Lint Source Code
+        run: npm run lint
+
+      - name: Compile Workspace Build
+        run: npm run build
+
+  build-docker-images:
+    name: Build & Validate Docker Images
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build User App Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/user-app/Dockerfile
+          push: false
+          tags: paytm-user-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Bank Webhook Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/bank-webhook/Dockerfile
+          push: false
+          tags: paytm-bank-webhook:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

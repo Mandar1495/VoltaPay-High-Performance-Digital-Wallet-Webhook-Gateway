@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: paytm-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-setup:
+    build:
+      context: .
+      dockerfile: apps/user-app/Dockerfile
+      target: base
+    container_name: paytm-db-setup
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:mysecretpassword@db:5432/postgres?schema=public
+    command: >
+      sh -c "
+        npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma &&
+        npx prisma db seed --schema=packages/db/prisma/schema.prisma
+      "
+
+  user-app:
+    build:
+      context: .
+      dockerfile: apps/user-app/Dockerfile
+    container_name: paytm-user-app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:mysecretpassword@db:5432/postgres?schema=public
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: next-auth-super-secret-key-12345
+      JWT_SECRET: test
+      PORT: 3001
+      BANK_WEBHOOK_URL: http://bank-webhook:3003/hdfcWebhook
+
+  bank-webhook:
+    build:
+      context: .
+      dockerfile: apps/bank-webhook/Dockerfile
+    container_name: paytm-bank-webhook
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://postgres:mysecretpassword@db:5432/postgres?schema=public
+      PORT: 3003
+
+volumes:
+  postgres_data:

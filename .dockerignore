@@ -1,0 +1,28 @@
+# Ignore dependencies and build caches
+node_modules
+**/node_modules
+
+# Next.js and build outputs
+.next
+**/.next
+out
+**/out
+dist
+**/dist
+build
+**/.turbo
+
+# Local configuration and logs
+.env
+*.env*
+.env.*
+.dev.vars
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# Version control
+.git
+.gitignore
+.github
